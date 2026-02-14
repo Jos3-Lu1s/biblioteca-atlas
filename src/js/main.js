@@ -154,6 +154,7 @@ window.renderHome = () => {
         </div>
     </div>
   `);
+  // join para unir todos los elementos del nuevo array en un solo string
   renderBreadcrumb();
 };
 
@@ -225,7 +226,16 @@ window.loadBook = (id, activo) => {
       <div class="row justify-content-center">
         <div class="col-lg-8 col-xl-8">
 
-          <div id="${libro.id}" class="brcr"></div>
+          ${
+            activo
+              ? `
+            
+            `
+              : `
+            <div id="${libro.id}" class="brcr"></div>
+          `
+          }
+          
 
           <!-- Tarjeta del libro -->
           <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
@@ -251,14 +261,18 @@ window.loadBook = (id, activo) => {
 
                   <p class="mb-2">
                     <i class="fa fa-user text-secondary"></i> Autor:
-                    ${activo ? `<span class="fw-semibold text-decoration-none">${autor.name}</span>` : `
+                    ${
+                      activo
+                        ? `<span class="fw-semibold text-decoration-none">${autor.name}</span>`
+                        : `
                     <a
                       href="#"
                       onclick="loadAuthor('${autor.id}')"
                       class="fw-semibold text-decoration-none"
                     >
                       ${autor.name}
-                    </a>`}
+                    </a>`
+                    }
                   </p>
 
                   <p class="mb-2">
@@ -309,7 +323,27 @@ window.loadAllBooks = () => {
       <div class="row justify-content-center">
         <div class="col-lg-8 col-xl-8">
 
-          <div class="row g-4">
+        <form class="d-flex" id="form" >
+          <div class="input-group">
+
+            <span class="input-group-text">
+              <i class="fa fa-search"></i>
+            </span>
+
+            <input 
+              type="text" 
+              class="form-control" 
+              placeholder="Buscar libros, autores, géneros..."
+            >
+
+            <button class="btn btn-secondary" id="btn" type="submit">
+              <i class="fa fa-arrow-right"></i> Buscar
+            </button>
+
+          </div>
+        </form>
+
+          <div class="row g-4 mt-1">
             ${libros
               .map(
                 (b) => `
@@ -328,14 +362,6 @@ window.loadAllBooks = () => {
                       <div class="card-body bg-dark text-white text-center">
                         <h5 class="card-title mb-1">${b.name}</h5>
                       </div>
-
-                      <span class="badge bg-secondary position-absolute top-0 end-0 m-2">
-                        <i class="fa fa-book"></i> 
-                      </span>
-
-                      <div class="card-footer text-center small">
-                        <i class="fa fa-arrow-right"></i> Ver libro
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -348,6 +374,62 @@ window.loadAllBooks = () => {
       </div>
     </div>
   `);
+  const form = document.querySelector("#form");
+  const btn = document.querySelector("#btn");
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const input = form.querySelector("input");
+    const search = input.value.toLowerCase().trim();
+
+    const resultados = libros.filter((libro) => {
+      return (
+        libro.name.toLowerCase().includes(search) ||
+        libro.desc.toLowerCase().includes(search) ||
+        libro.sinopsis.toLowerCase().includes(search) ||
+        libro.tags.some((tag) => tag.toLowerCase().includes(search)) // some para que por lo menos un elemento del array cumpla con la condicion
+      );
+    });
+
+    console.log(resultados);
+
+    renderResultadosLibros(resultados);
+  });
+};
+
+const renderResultadosLibros = (lista) => {
+  const container = document.querySelector(".row.g-4");
+
+  if (lista.length === 0) {
+    container.innerHTML = `
+      <div class="col-12 text-center text-muted">
+        <p>No se encontraron resultados</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = lista
+    .map(
+      (b) => `
+        <div class="col-md-4 col-sm-6">
+          <div onclick="loadBook('${b.id}', true)" role="button">
+            <div class="card border-0 shadow-sm">
+              <img
+                src="https://placehold.co/400x600?text=${b.name}"
+                class="card-img-top"
+                alt="${b.name}"
+              />
+              <div class="card-body bg-dark text-white text-center">
+                <h5 class="card-title mb-1">${b.name}</h5>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+    )
+    .join("");
 };
 
 /* AUTHOR */
@@ -472,8 +554,28 @@ window.loadAllAuthors = () => {
     <div class="container py-4">
       <div class="row justify-content-center">
         <div class="col-lg-8 col-xl-8">
-          <div id="all-authors" class="brcr"></div>
-          <div class="row g-4">
+
+        <form class="d-flex" id="form">
+          <div class="input-group">
+
+            <span class="input-group-text">
+              <i class="fa fa-search"></i>
+            </span>
+
+            <input 
+              type="text" 
+              class="form-control" 
+              placeholder="Buscar libros, autores, géneros..."
+            >
+
+            <button id="btn" class="btn btn-secondary" type="submit">
+              <i class="fa fa-arrow-right"></i> Buscar
+            </button>
+
+          </div>
+        </form>
+
+          <div class="row g-4 mt-1">
             ${autoresUnicos
               .map(
                 (a) => `
@@ -482,9 +584,6 @@ window.loadAllAuthors = () => {
                   <div class="card-body text-center">
                     <h5>${a.name}</h5>
                     <p class="text-muted fst-italic">${a.nationality || ""}</p>
-                  </div>
-                  <div class="card-footer bg-light text-center small text-muted">
-                    <i class="fa fa-arrow-right"></i> Ver autor
                   </div>
                 </div>
               </div>
@@ -496,6 +595,44 @@ window.loadAllAuthors = () => {
       </div>
     </div>
   `);
+  const form = document.querySelector("#form");
+  const btn = document.querySelector("#btn");
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    console.log("Prueba");
+    const input = form.querySelector("input");
+    const search = input.value.toLowerCase().trim();
+
+    const resultados = autores.filter((autor) => {
+      return (
+        autor.name.toLowerCase().includes(search) ||
+        autor.bio.toLowerCase().includes(search) ||
+        autor.nationality.toLowerCase().includes(search) ||
+        autor.awards.some((prem) => prem.toLowerCase().includes(search)) // some para que por lo menos un elemento del array cumpla con la condicion
+      );
+    });
+
+    const Unicos = resultados.filter(
+      (a, index, self) => index === self.findIndex((t) => t.name === a.name), // indice donde coincide el nombre
+    );
+
+    console.log(Unicos);
+    const html = Unicos.map(
+      (a) => `
+      <div class="col-md-4 col-sm-6">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body text-center">
+            <h5>${a.name}</h5>
+            <p class="text-muted fst-italic">${a.nationality || ""}</p>
+          </div>
+        </div>
+      </div>
+    `,
+    ).join("");
+
+    document.querySelector(".row.g-4").innerHTML = html;
+  });
 };
 
 renderHome();
