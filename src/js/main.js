@@ -4,7 +4,9 @@ import { generos, libros, autores } from "./data.js";
 const app = document.querySelector("#app");
 const render = (html) => (app.innerHTML = html);
 
-const renderBreadcrumb = () => {
+const renderBreadcrumb = (origen) => {
+  if (origen) return;
+
   const breadCrumb = document.querySelector(".brcr");
   breadCrumb.innerHTML = "";
 
@@ -12,7 +14,7 @@ const renderBreadcrumb = () => {
   const lista = document.createElement("ol");
   lista.classList.add("breadcrumb");
 
-  const paginaInicial = ["pag", "Libreria"];
+  const paginaInicial = ["pag", "Géneros"];
   const refGeneros = generos.map((g) => [g.id, g.name]);
   const refLibros = libros.map((l) => [l.id, l.name]);
   const refAutores = autores.map((a) => [a.id, a.name]);
@@ -26,8 +28,8 @@ const renderBreadcrumb = () => {
   while (buscar.length >= 3) {
     let encontrado = mapaRutas.find((ruta) => ruta[0] === buscar);
     if (encontrado) {
-        console.log(encontrado);
-        
+      console.log(encontrado);
+
       const idRuta = encontrado[0];
 
       const li = document.createElement("li");
@@ -84,10 +86,33 @@ const renderHeader = () => `
       </p>
     </div>
   </div>
+
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container">
+      
+      <ul class="navbar-nav mx-auto flex-row">
+        
+        <li class="nav-item px-3">
+          <a class="nav-link" href="#" onclick="renderHome()">Géneros</a>
+        </li>
+
+        <li class="nav-item px-3">
+          <a class="nav-link" href="#" onclick="loadAllBooks()">Libros</a>
+        </li>
+
+        <li class="nav-item px-3">
+          <a class="nav-link" href="#" onclick="loadAllAuthors()">Autores</a>
+        </li>
+
+      </ul>
+
+    </div>
+  </nav>
+
 `;
 
 /* HOME */
-const renderHome = () => {
+window.renderHome = () => {
   render(`
     ${renderHeader()}
     <div class="container py-4">
@@ -132,7 +157,7 @@ const renderHome = () => {
   renderBreadcrumb();
 };
 
-/* GENRE */
+/* GENRE -> lista de libros */
 window.loadGenre = (id) => {
   const genre = generos.find((g) => g.id === id);
   const list = libros.filter((b) => b.genreId === id);
@@ -187,11 +212,11 @@ window.loadGenre = (id) => {
   renderBreadcrumb();
 };
 
-/* BOOK */
-window.loadBook = (id) => {
-  const book = libros.find((b) => b.id === id);
-  const author = autores.find((a) => a.id === book.authorId);
-  const genre = generos.find((g) => g.id === book.genreId);
+/* BOOK -> Detalles del libro */
+window.loadBook = (id, activo) => {
+  const libro = libros.find((b) => b.id === id);
+  const autor = autores.find((a) => a.id === libro.authorId);
+  const genero = generos.find((g) => g.id === libro.genreId);
 
   render(`
     ${renderHeader()}
@@ -200,7 +225,7 @@ window.loadBook = (id) => {
       <div class="row justify-content-center">
         <div class="col-lg-8 col-xl-8">
 
-          <div id="${book.id}" class="brcr"></div>
+          <div id="${libro.id}" class="brcr"></div>
 
           <!-- Tarjeta del libro -->
           <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
@@ -208,45 +233,46 @@ window.loadBook = (id) => {
 
               <div class="col-md-4 text-center p-4 bg-light">
                 <img
-                  src="${book.cover || "https://placehold.co/400x600?text=" + book.name}"
+                  src="${libro.cover || "https://placehold.co/400x600?text=" + libro.name}"
                   class="img-fluid rounded shadow mb-3"
-                  alt="${book.name}"
+                  alt="${libro.name}"
                 />
 
-                <span class="badge bg-primary">${genre.name}</span>
-                <span class="badge bg-warning text-dark ms-1">${book.year}</span>
+                <span class="badge bg-primary">${genero.name}</span>
+                <span class="badge bg-warning text-dark ms-1">${libro.year}</span>
               </div>
 
               <div class="col-md-8">
                 <div class="card-body p-4">
 
                   <h2 class="fw-bold mb-2">
-                    <i class="fa fa-book text-primary"></i> ${book.name}
+                    <i class="fa fa-book text-primary"></i> ${libro.name}
                   </h2>
 
                   <p class="mb-2">
                     <i class="fa fa-user text-secondary"></i> Autor:
+                    ${activo ? `<span class="fw-semibold text-decoration-none">${autor.name}</span>` : `
                     <a
                       href="#"
-                      onclick="loadAuthor('${author.id}')"
+                      onclick="loadAuthor('${autor.id}')"
                       class="fw-semibold text-decoration-none"
                     >
-                      ${author.name}
-                    </a>
+                      ${autor.name}
+                    </a>`}
                   </p>
 
                   <p class="mb-2">
                     <i class="fa fa-building text-secondary"></i>
-                    Editorial: <strong>${book.publisher}</strong>
+                    Editorial: <strong>${libro.publisher}</strong>
                   </p>
 
                   <p class="mb-3">
                     <i class="fa fa-star text-warning"></i>
-                    Rating: <strong>${book.rating}</strong> / 5
+                    Rating: <strong>${libro.rating}</strong> / 5
                   </p>
 
                   <div class="mb-3">
-                    ${book.tags
+                    ${libro.tags
                       .map(
                         (tag) =>
                           `<span class="badge bg-secondary me-1">${tag}</span>`,
@@ -254,11 +280,11 @@ window.loadBook = (id) => {
                       .join("")}
                   </div>
 
-                  <p class="text-muted fst-italic">${book.desc}</p>
+                  <p class="text-muted fst-italic">${libro.desc}</p>
 
                   <div class="mt-3">
-                    <h5 class="fw-bold">📖 Sinopsis</h5>
-                    <p class="text-justify">${book.sinopsis}</p>
+                    <h5 class="fw-bold"><i class="fa fa-file-text"></i> Sinopsis</h5>
+                    <p class="text-justify">${libro.sinopsis}</p>
                   </div>
 
                 </div>
@@ -271,11 +297,64 @@ window.loadBook = (id) => {
       </div>
     </div>
   `);
+  if (activo) return;
   renderBreadcrumb();
 };
 
+window.loadAllBooks = () => {
+  render(`
+    ${renderHeader()}
+
+    <div class="container py-4">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-8">
+
+          <div class="row g-4">
+            ${libros
+              .map(
+                (b) => `
+                <div class="col-md-4 col-sm-6">
+                  <div
+                    onclick="loadBook('${b.id}', true)"
+                    role="button"
+                  >
+                    <div class="card border-0 shadow-sm">
+                      <img
+                        src="https://placehold.co/400x600?text=${b.name}"
+                        class="card-img-top"
+                        alt="${b.name}"
+                      />
+
+                      <div class="card-body bg-dark text-white text-center">
+                        <h5 class="card-title mb-1">${b.name}</h5>
+                      </div>
+
+                      <span class="badge bg-secondary position-absolute top-0 end-0 m-2">
+                        <i class="fa fa-book"></i> 
+                      </span>
+
+                      <div class="card-footer text-center small">
+                        <i class="fa fa-arrow-right"></i> Ver libro
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `,
+              )
+              .join("")}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  `);
+};
+
 /* AUTHOR */
-window.loadAuthor = (id) => {
+window.loadAuthor = (id, activo) => {
+  console.log({ activo: activo });
+  console.log("loadAutor");
+
   const author = autores.find((a) => a.id === id);
   const authorlibros = libros.filter((b) => b.authorId === id);
 
@@ -377,7 +456,46 @@ window.loadAuthor = (id) => {
       </div>
     </div>
   `);
+  if (activo) return;
   renderBreadcrumb();
+};
+
+window.loadAllAuthors = () => {
+  // a -> autor actual
+  // index -> indice actual
+  // self -> arreglo de autores
+  const autoresUnicos = autores.filter(
+    (a, index, self) => index === self.findIndex((t) => t.name === a.name), // indice donde coincide el nombre
+  );
+  render(`
+    ${renderHeader()}
+    <div class="container py-4">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-8">
+          <div id="all-authors" class="brcr"></div>
+          <div class="row g-4">
+            ${autoresUnicos
+              .map(
+                (a) => `
+              <div class="col-md-4 col-sm-6">
+                <div class="card h-100 shadow-sm border-0" onclick="loadAuthor('${a.id}', true)" role="button">
+                  <div class="card-body text-center">
+                    <h5>${a.name}</h5>
+                    <p class="text-muted fst-italic">${a.nationality || ""}</p>
+                  </div>
+                  <div class="card-footer bg-light text-center small text-muted">
+                    <i class="fa fa-arrow-right"></i> Ver autor
+                  </div>
+                </div>
+              </div>
+            `,
+              )
+              .join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
 };
 
 renderHome();
