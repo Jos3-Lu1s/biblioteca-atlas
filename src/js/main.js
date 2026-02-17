@@ -1,11 +1,12 @@
 import { generos, libros, autores } from "./data.js";
+import { setFieldError, clearFieldError } from "./formValidation.js";
+import { getValidSearch, searchBooks, searchAuthors, searchGenres } from "./searchHelpers.js";
 
 /* ========== APP ========== */
 const app = document.querySelector("#app");
 const render = (html) => (app.innerHTML = html);
 
-const renderBreadcrumb = (origen) => {
-  if (origen) return;
+const renderBreadcrumb = () => {
 
   const breadCrumb = document.querySelector(".brcr");
   breadCrumb.innerHTML = "";
@@ -84,6 +85,31 @@ const renderHeader = () => `
         Un mundo de historias en un solo lugar
         <i class="fa fa-quote-right"></i>
       </p>
+    </div>
+  </div>
+
+
+  
+   <div class="bg-light border-bottom">
+    <div class="container py-2">
+      <form id="globalSearchForm" class="d-flex" autocomplete="off">
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="fa fa-search"></i>
+          </span>
+
+          <input
+            name="q"
+            type="text"
+            class="form-control"
+            placeholder="Buscar en géneros, libros y autores..."
+          />
+
+          <button class="btn btn-secondary" type="submit">
+            <i class="fa fa-arrow-right"></i> Buscar
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -323,33 +349,13 @@ window.loadAllBooks = () => {
       <div class="row justify-content-center">
         <div class="col-lg-8 col-xl-8">
 
-        <form class="d-flex" id="form" >
-          <div class="input-group">
-
-            <span class="input-group-text">
-              <i class="fa fa-search"></i>
-            </span>
-
-            <input 
-              type="text" 
-              class="form-control" 
-              placeholder="Buscar libros, autores, géneros..."
-            >
-
-            <button class="btn btn-secondary" id="btn" type="submit">
-              <i class="fa fa-arrow-right"></i> Buscar
-            </button>
-
-          </div>
-        </form>
-
           <div class="row g-4 mt-1">
             ${libros
               .map(
                 (b) => `
                 <div class="col-md-4 col-sm-6">
                   <div
-                    onclick="loadBook('${b.id}', true)"
+                    onclick="loadBook('${b.id}')"
                     role="button"
                   >
                     <div class="card border-0 shadow-sm">
@@ -374,28 +380,6 @@ window.loadAllBooks = () => {
       </div>
     </div>
   `);
-  const form = document.querySelector("#form");
-  const btn = document.querySelector("#btn");
-
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-
-    const input = form.querySelector("input");
-    const search = input.value.toLowerCase().trim();
-
-    const resultados = libros.filter((libro) => {
-      return (
-        libro.name.toLowerCase().includes(search) ||
-        libro.desc.toLowerCase().includes(search) ||
-        libro.sinopsis.toLowerCase().includes(search) ||
-        libro.tags.some((tag) => tag.toLowerCase().includes(search)) // some para que por lo menos un elemento del array cumpla con la condicion
-      );
-    });
-
-    console.log(resultados);
-
-    renderResultadosLibros(resultados);
-  });
 };
 
 const renderResultadosLibros = (lista) => {
@@ -555,26 +539,6 @@ window.loadAllAuthors = () => {
       <div class="row justify-content-center">
         <div class="col-lg-8 col-xl-8">
 
-        <form class="d-flex" id="form">
-          <div class="input-group">
-
-            <span class="input-group-text">
-              <i class="fa fa-search"></i>
-            </span>
-
-            <input 
-              type="text" 
-              class="form-control" 
-              placeholder="Buscar libros, autores, géneros..."
-            >
-
-            <button id="btn" class="btn btn-secondary" type="submit">
-              <i class="fa fa-arrow-right"></i> Buscar
-            </button>
-
-          </div>
-        </form>
-
           <div class="row g-4 mt-1">
             ${autoresUnicos
               .map(
@@ -595,44 +559,117 @@ window.loadAllAuthors = () => {
       </div>
     </div>
   `);
-  const form = document.querySelector("#form");
-  const btn = document.querySelector("#btn");
 
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    console.log("Prueba");
-    const input = form.querySelector("input");
-    const search = input.value.toLowerCase().trim();
+};
 
-    const resultados = autores.filter((autor) => {
-      return (
-        autor.name.toLowerCase().includes(search) ||
-        autor.bio.toLowerCase().includes(search) ||
-        autor.nationality.toLowerCase().includes(search) ||
-        autor.awards.some((prem) => prem.toLowerCase().includes(search)) // some para que por lo menos un elemento del array cumpla con la condicion
-      );
-    });
+app.addEventListener("submit", (e) => {
+  if (!e.target.matches("#globalSearchForm")) return;
 
-    const Unicos = resultados.filter(
-      (a, index, self) => index === self.findIndex((t) => t.name === a.name), // indice donde coincide el nombre
-    );
+  e.preventDefault();
 
-    console.log(Unicos);
-    const html = Unicos.map(
-      (a) => `
-      <div class="col-md-4 col-sm-6">
-        <div class="card h-100 shadow-sm border-0">
-          <div class="card-body text-center">
-            <h5>${a.name}</h5>
-            <p class="text-muted fst-italic">${a.nationality || ""}</p>
+  const input = e.target.querySelector('input[name="q"]');
+  const v = getValidSearch(input);
+
+  if (!v.ok) {
+    setFieldError(input, v.msg);
+    return;
+  }
+
+  clearFieldError(input);
+  renderSearchResults(v.q);
+});
+
+const renderSearchResults = (q) => {
+  const resG = searchGenres(q);
+  const resB = searchBooks(q);
+  const resA = searchAuthors(q);
+
+  // Si quieres autores únicos por nombre (como ya haces)
+  const autoresUnicos = resA.filter(
+    (a, index, self) => index === self.findIndex((t) => t.name === a.name)
+  );
+
+  render(`
+    ${renderHeader()}
+
+    <div class="container py-4">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-8">
+
+          <h3 class="mb-3">
+            Resultados para: <span class="text-muted">${q}</span>
+          </h3>
+
+          <hr class="my-4"/>
+
+          <h4 class="fw-bold"><i class="fa fa-tags"></i> Géneros</h4>
+          <div class="row g-3 mb-4">
+            ${
+              resG.length
+                ? resG.map(g => `
+                    <div class="col-md-4 col-sm-6">
+                      <div class="card h-100 shadow-sm border-0"
+                           onclick="loadGenre('${g.id}')"
+                           role="button">
+                        <div class="card-body text-center">
+                          <h5 class="mb-0">${g.name}</h5>
+                        </div>
+                      </div>
+                    </div>
+                  `).join("")
+                : `<div class="col-12 text-muted">No se encontraron géneros.</div>`
+            }
           </div>
+
+          <h4 class="fw-bold"><i class="fa fa-book"></i> Libros</h4>
+          <div class="row g-3 mb-4">
+            ${
+              resB.length
+                ? resB.slice(0, 12).map(b => `
+                    <div class="col-md-4 col-sm-6">
+                      <div class="card border-0 shadow-sm"
+                           onclick="loadBook('${b.id}')"
+                           role="button">
+                        <img
+                          src="https://placehold.co/400x600?text=${b.name}"
+                          class="card-img-top"
+                          alt="${b.name}"
+                        />
+                        <div class="card-body bg-dark text-white text-center">
+                          <h5 class="card-title mb-1">${b.name}</h5>
+                        </div>
+                      </div>
+                    </div>
+                  `).join("")
+                : `<div class="col-12 text-muted">No se encontraron libros.</div>`
+            }
+          </div>
+
+          <h4 class="fw-bold"><i class="fa fa-user"></i> Autores</h4>
+          <div class="row g-3">
+            ${
+              autoresUnicos.length
+                ? autoresUnicos.slice(0, 12).map(a => `
+                    <div class="col-md-4 col-sm-6">
+                      <div class="card h-100 shadow-sm border-0"
+                           onclick="loadAuthor('${a.id}')"
+                           role="button">
+                        <div class="card-body text-center">
+                          <h5>${a.name}</h5>
+                          <p class="text-muted fst-italic mb-0">${a.nationality || ""}</p>
+                        </div>
+                      </div>
+                    </div>
+                  `).join("")
+                : `<div class="col-12 text-muted">No se encontraron autores.</div>`
+            }
+          </div>
+
         </div>
       </div>
-    `,
-    ).join("");
-
-    document.querySelector(".row.g-4").innerHTML = html;
-  });
+    </div>
+  `);
 };
+
 
 renderHome();
