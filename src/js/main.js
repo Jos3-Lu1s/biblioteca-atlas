@@ -355,7 +355,7 @@ window.loadAllBooks = () => {
                 (b) => `
                 <div class="col-md-4 col-sm-6">
                   <div
-                    onclick="loadBook('${b.id}')"
+                    onclick="loadBook('${b.id}', true)"
                     role="button"
                   >
                     <div class="card border-0 shadow-sm">
